@@ -1,5 +1,4 @@
-# Client ID:  5c2ff10a7a374881a03eaf571eacfba4
-# Client Secret:  1dd884442eea467996efd90d524772fd
+
 
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
