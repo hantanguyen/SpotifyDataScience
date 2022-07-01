@@ -1,18 +1,9 @@
-# Client ID:  5c2ff10a7a374881a03eaf571eacfba4
-# Client Secret:  1dd884442eea467996efd90d524772fd
-
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 
-client_credentials_manager = SpotifyClientCredentials(client_id="5c2ff10a7a374881a03eaf571eacfba4", client_secret="1dd884442eea467996efd90d524772fd")
+client_credentials_manager = SpotifyClientCredentials(client_id="CLIENT_ID", client_secret="CLIENT_SECRET") #Insert Spotify Developer Client_ID and Client_Secret ID for Project
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 artist_name = []
@@ -20,7 +11,7 @@ track_name = []
 track_popularity = []
 artist_id = []
 track_id = []
-for i in range(0, 1000, 50):
+for i in range(0, 500, 50):
     track_results = sp.search(q='year:2021', type='track', limit=50,offset=i)
     for i, t in enumerate(track_results['tracks']['items']):
         artist_name.append(t['artists'][0]['name'])
@@ -28,6 +19,7 @@ for i in range(0, 1000, 50):
         track_name.append(t['name'])
         track_id.append(t['id'])
         track_popularity.append(t['popularity'])
+        
 
 track_df = pd.DataFrame({'artist_name' : artist_name, 'track_name' : track_name, 'track_id' : track_id, 'track_popularity' : track_popularity, 'artist_id' : artist_id})
 print(track_df.shape)
@@ -70,6 +62,10 @@ tf_df['time_signature'] = tf_df['time_signature'].astype("category")
 print(track_df.info())
 print(tf_df.info())
 
+# kyle's code for finding top 10 tracks
+by_popularity = pd.DataFrame(track_df.sort_values(by=['track_popularity'], ascending=False)[['artist_name', 'track_name']])
+print(by_popularity.head(10))
+
 def count_vowels(parameter):
     vowels = ['a', 'e', 'i', 'o', 'u']
     x = 0
@@ -102,18 +98,6 @@ plt.axis('equal')
 plt.show()
 print("")
 
-# placeholder for pie chart
-# here we could include 5-8 different music genres (rock, kpop, classical, pop...etc)
-# labels = []
-# # (does every "50" account for each pie slice?) not sure here
-# sizes = [50,50,50]
-# # same here
-# plt.pie(sizes,labels=labels,explode=(0.1,0.1,0.1))
-# # (this sets a proper axis)
-# plt.axis('equal')
-# # displays the pie chart
-# plt.show()
-
 df_merge_difkey = pd.merge(track_df, tf_df, left_on='track_id', right_on='id')
 artist_name = df_merge_difkey["artist_name"]
 artist_name = pd.value_counts(artist_name)
@@ -123,16 +107,44 @@ plt.title("Amount of Songs Per Artist in the Top 100")
 plt.barh(keys[0:10], value[0:10])
 plt.show()
 
-# # this option is for a scatterplot, we can either do artists popularity over time or genre popularity over time
-# plt.scatter(iris["length"], iris["width"], color = "blue")
-# plt.title("Scatter Plot")
-# plt.xlabel("length")
-# plt.ylabel("width")
-# plt.show
+#kyle's radial graph
+track_pop = pd.DataFrame(track_df.sort_values(by=['track_popularity'], ascending=False)[['track_popularity','track_name',
+                                                                                         'artist_name','artist_genres',
+                                                                                         'track_id']])
 
-# i also do want the pokemon looking graph too, i just have no idea what it is called
+# Dropping all Unnecessary Columns to Radial Plot
+tf_df = tf_df.drop(columns=['key', 'mode', 'type', 'uri', 'track_href', 'analysis_url', 'duration_ms', 'time_signature',
+                            'loudness', 'tempo'])
 
-#feature_labels = list
+categories = tf_df.columns.tolist()
+# Creating on Data Set to Display Features on Top 125 Songs
+top_125_feat = pd.DataFrame(columns=categories)
+for i, track in track_pop[:125].iterrows():
+    features = tf_df[tf_df['id'] == track['track_id']]
+    top_125_feat = top_125_feat.append(features, ignore_index=True)
+
+# Splicing List and Taking 'id' category out so, it does not appear on plot
+categories = ['danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence']
+
+top_125_feat = top_125_feat[categories]
+
+mean_values = pd.DataFrame(columns=categories)
+mean_values = mean_values.append(top_125_feat.mean(), ignore_index=True)
+mean_values = mean_values.append(tf_df[categories].mean(), ignore_index=True)
+
+fig = go.Figure(
+    data=[
+        go.Scatterpolar(r=mean_values.iloc[0], theta=categories, fill='toself', name="Top 125"),
+        go.Scatterpolar(r=mean_values.iloc[1], theta=categories, fill='toself', name="All Tracks"),
+    ],
+        layout=go.Layout(
+        title=go.layout.Title(text='Comparison of Features'),
+        polar={'radialaxis': {'visible': True}},
+        showlegend=True
+    )
+)
+
+fig.show()
 
 # kyle's graph
 track_df.drop_duplicates(subset=['artist_name'], keep=False, inplace=True)
